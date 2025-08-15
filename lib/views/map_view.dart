@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+
 import '../controllers/map_controller.dart';
 import '../controllers/polygon_controller.dart';
-import '../views/saved_polygon.dart';
+import '../views/offline_map.dart';
 import '../views/polygon_details.dart';
+import '../views/saved_polygon.dart';
 
 class MapView extends StatelessWidget {
   final MapController mapController = Get.find();
@@ -22,7 +24,8 @@ class MapView extends StatelessWidget {
             icon: const Icon(Icons.download),
             tooltip: "Download Dar es Salaam Offline Map",
             onPressed: () {
-              mapController.downloadDarEsSalaamOffline(MapboxStyles.OUTDOORS);
+              // mapController.downloadDarEsSalaamOffline(MapboxStyles.OUTDOORS);
+              Get.to(() => OfflineMapExample());
             },
           ),
           IconButton(
@@ -41,16 +44,11 @@ class MapView extends StatelessWidget {
           children: [
             MapWidget(
               onMapCreated: (map) => mapController.onMapCreated(map),
+              styleUri: MapboxStyles.STANDARD_SATELLITE,
               cameraOptions: CameraOptions(
                 center: mapController.currentPosition.value,
                 zoom: 16,
               ),
-              // styleUri:
-              //     mapController.isOfflineMode.value &&
-              //         mapController.tileStore.value == true
-              //     ? mapController.tileStore.string // Use the offline style
-              //     : MapboxStyles
-              //           .OUTDOORS, // online style (can change if you want)
             ),
 
             Positioned(
@@ -107,13 +105,15 @@ class MapView extends StatelessWidget {
                     tooltip: "Switch between Offline & Online map",
                     onPressed: () {
                       if (mapController.isOfflineMode.value) {
+                        Get.to(() => MapView());
                         mapController.switchToOnline();
-                        Get.snackbar("Map Mode", "Switched to online map.");
                       } else {
+                        Get.to(
+                          () => OfflineMapExample(),
+                          arguments: "Offline Map",
+                        );
+                        mapController.initOfflineMap();
                         mapController.switchToOffline();
-                        if (mapController.isOfflineMapAvailable.value) {
-                          Get.snackbar("Map Mode", "Switched to offline map.");
-                        }
                       }
                     },
                   ),
@@ -146,6 +146,12 @@ class MapView extends StatelessWidget {
                               ),
                               subtitle: Text(
                                 'Alt: ${point['altitude'].toStringAsFixed(2)} m, Acc: ${point['accuracy'].toStringAsFixed(2)} m',
+                              ),
+                              trailing: IconButton(
+                                onPressed: () {
+                                  mapController.removeAtIndex(index);
+                                },
+                                icon: Icon(Icons.delete, color: Colors.red),
                               ),
                             );
                           },

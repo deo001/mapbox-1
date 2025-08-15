@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+
 import '../controllers/polygon_controller.dart';
 import '../views/dowlnloaded_map.dart';
 
@@ -31,42 +32,41 @@ class MapController extends GetxController {
   );
   final tileStore = Rxn<TileStore>();
   final isOfflineMapAvailable = false.obs;
-  
-Future<void> checkOfflineMap() async {
-  final ts = await TileStore.createDefault();
-  final regions = await ts.allTileRegions();
 
-  // Check if our Dar es Salaam region exists
-  final exists = regions.any((r) => r.id == tileRegionId);
-  if (exists) {
-    isOfflineMapAvailable.value = true;
-    tileStore.value = ts;
-  } else {
-    isOfflineMapAvailable.value = false;
+  Future<void> checkOfflineMap() async {
+    final ts = await TileStore.createDefault();
+    final regions = await ts.allTileRegions();
+
+    // Check if our Dar es Salaam region exists
+    final exists = regions.any((r) => r.id == tileRegionId);
+    if (exists) {
+      isOfflineMapAvailable.value = true;
+      tileStore.value = ts;
+    } else {
+      isOfflineMapAvailable.value = false;
+    }
   }
-}
-final isOfflineMode = false.obs; // whether user wants offline map
 
-Future<void> switchToOffline() async {
-  final ts = await TileStore.createDefault();
-  final regions = await ts.allTileRegions();
+  final isOfflineMode = false.obs; // whether user wants offline map
 
-  if (regions.isNotEmpty) {
-    isOfflineMapAvailable.value = true;
-    isOfflineMode.value = true;
+  Future<void> switchToOffline() async {
+    final ts = await TileStore.createDefault();
+    final regions = await ts.allTileRegions();
+
+    if (regions.isNotEmpty) {
+      isOfflineMapAvailable.value = true;
+      isOfflineMode.value = true;
+      update();
+    } else {
+      isOfflineMapAvailable.value = false;
+      Get.snackbar("Offline Map", "No downloaded map available.");
+    }
+  }
+
+  void switchToOnline() {
+    isOfflineMode.value = false;
     update();
-  } else {
-    isOfflineMapAvailable.value = false;
-    Get.snackbar("Offline Map", "No downloaded map available.");
   }
-}
-
-void switchToOnline() {
-  isOfflineMode.value = false;
-  update();
-}
-
-
 
   // -------------------- LIFECYCLE --------------------
   @override
@@ -99,7 +99,7 @@ void switchToOnline() {
       ),
     ).listen((pos) {
       _setCurrentPositionFromGeo(pos);
-      _moveCameraToCurrentPosition();
+      // _moveCameraToCurrentPosition();
     });
   }
 
@@ -118,13 +118,24 @@ void switchToOnline() {
     );
   }
 
-  void _moveCameraToCurrentPosition() {
-    if (mapboxMap != null && currentPosition.value != null) {
-      mapboxMap!.setCamera(
-        CameraOptions(center: currentPosition.value, zoom: 16),
-      );
-    }
+  TileStore? _tileStore;
+  OfflineManager? _offlineManager;
+  final _tileRegionId = "my-tile-region";
+  Future<void> initOfflineMap() async {
+    _offlineManager = await OfflineManager.create();
+    _tileStore = await TileStore.createDefault();
+
+    // Reset disk quota to default value
+    _tileStore?.setDiskQuota(null);
   }
+
+  // void _moveCameraToCurrentPosition() {
+  //   if (mapboxMap != null && currentPosition.value != null) {
+  //     mapboxMap!.setCamera(
+  //       CameraOptions(center: currentPosition.value, zoom: 16),
+  //     );
+  //   }
+  // }
 
   // -------------------- MAP INIT --------------------
   Future<void> onMapCreated(MapboxMap map) async {
@@ -184,7 +195,11 @@ void switchToOnline() {
       });
       showDetails.value = true;
     });
+    if (polygonPoints.length > 3) {
+      completePolygon();
+    }
   }
+
   void removeCurrentPoint() {
     if (polygonPoints.isNotEmpty) {
       polygonPoints.removeLast();
@@ -194,6 +209,17 @@ void switchToOnline() {
       }
     } else {
       Get.snackbar('No points', 'No points to remove');
+    }
+  }
+
+  void removeAtIndex(int index) {
+    if (index >= 0 && index < polygonPoints.length) {
+      polygonPoints.removeAt(index);
+      locationDetails.removeAt(index);
+      if (polygonPoints.isEmpty) {
+        showDetails.value =
+            false; // Redraw polyline after removal _drawPolyline(polygonPoints);
+      }
     }
   }
 
@@ -286,56 +312,52 @@ void switchToOnline() {
     isOfflineMapAvailable.value = true;
 
     await listDownloadedMaps();
-
   }
 
   final useOfflineMap = false.obs;
 
-void toggleOfflineView() {
-  if (isOfflineMapAvailable.value) {
-    useOfflineMap.toggle();
-  } else {
-    Get.snackbar("Offline Map", "No downloaded map available.");
-  }
-}
+  get index => null;
 
-
-Future<void> listDownloadedMaps() async {
-  try {
-    final tileStore = await TileStore.createDefault();
-
-    // Get all downloaded regions
-    final regions = await tileStore.allTileRegions();
-
-    if (regions.isEmpty) {
-      debugPrint("No offline regions found.");
-      Get.snackbar("Offline Map", "No downloaded regions found.");
-      return;
+  void toggleOfflineView() {
+    if (isOfflineMapAvailable.value) {
+      useOfflineMap.toggle();
+    } else {
+      Get.snackbar("Offline Map", "No downloaded map available.");
     }
-
-    for (final region in regions) {
-      debugPrint("Region ID: ${region.id}");
-      // Size calculation (bytes → MB)
-      final sizeMB = (region.completedResourceSize / (1024 * 1024));
-      debugPrint("Size: ${sizeMB.toStringAsFixed(2)} MB");
-
-      Get.snackbar(
-        "Offline Region",
-        "${region.id}: ${sizeMB.toStringAsFixed(2)} MB",
-        duration: const Duration(seconds: 3),
-      );
-    }
-  } catch (e) {
-    debugPrint("Error listing offline maps: $e");
-    Get.snackbar("Error", "Failed to list offline maps");
   }
 
+  Future<void> listDownloadedMaps() async {
+    try {
+      final tileStore = await TileStore.createDefault();
 
-  Get.to(()=>OfflineMapPage()); // Navigate to the map ready page
-}
+      // Get all downloaded regions
+      final regions = await tileStore.allTileRegions();
 
+      if (regions.isEmpty) {
+        debugPrint("No offline regions found.");
+        Get.snackbar("Offline Map", "No downloaded regions found.");
+        return;
+      }
 
+      for (final region in regions) {
+        debugPrint("Region ID: ${region.id}");
+        // Size calculation (bytes → MB)
+        final sizeMB = (region.completedResourceSize / (1024 * 1024));
+        debugPrint("Size: ${sizeMB.toStringAsFixed(2)} MB");
 
+        Get.snackbar(
+          "Offline Region",
+          "${region.id}: ${sizeMB.toStringAsFixed(2)} MB",
+          duration: const Duration(seconds: 3),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error listing offline maps: $e");
+      Get.snackbar("Error", "Failed to list offline maps");
+    }
+
+    Get.to(() => OfflineMapPage()); // Navigate to the map ready page
+  }
 
   double _estimateOfflineSizeMB(
     int minZoom,
@@ -351,7 +373,6 @@ Future<void> listDownloadedMaps() async {
     return sizeKB / 1024;
   }
 }
-
 
 // -------------------- EXTENSIONS --------------------
 extension BoundsToPolygon on CoordinateBounds {
