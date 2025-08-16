@@ -4,9 +4,9 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../controllers/map_controller.dart';
 import '../controllers/polygon_controller.dart';
-import '../views/offline_map.dart';
 import '../views/polygon_details.dart';
 import '../views/saved_polygon.dart';
+import 'offline_map_screen.dart';
 
 class MapView extends StatelessWidget {
   final MapController mapController = Get.find();
@@ -25,7 +25,7 @@ class MapView extends StatelessWidget {
             tooltip: "Download Dar es Salaam Offline Map",
             onPressed: () {
               // mapController.downloadDarEsSalaamOffline(MapboxStyles.OUTDOORS);
-              Get.to(() => OfflineMapExample());
+              Get.to(() => OfflineMapScreen());
             },
           ),
           IconButton(
@@ -44,7 +44,7 @@ class MapView extends StatelessWidget {
           children: [
             MapWidget(
               onMapCreated: (map) => mapController.onMapCreated(map),
-              styleUri: MapboxStyles.STANDARD_SATELLITE,
+              styleUri: MapboxStyles.OUTDOORS,
               cameraOptions: CameraOptions(
                 center: mapController.currentPosition.value,
                 zoom: 16,
@@ -87,34 +87,11 @@ class MapView extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   FloatingActionButton.extended(
-                    label: Obx(
-                      () => Text(
-                        mapController.isOfflineMode.value
-                            ? "Go Online"
-                            : "Go Offline",
-                      ),
-                    ),
+                    label: Text("Go Offline"),
                     heroTag: 'toggle_map_mode',
-                    icon: Obx(
-                      () => Icon(
-                        mapController.isOfflineMode.value
-                            ? Icons.wifi
-                            : Icons.offline_pin,
-                      ),
-                    ),
-                    tooltip: "Switch between Offline & Online map",
+                    icon: Icon(Icons.offline_pin),
                     onPressed: () {
-                      if (mapController.isOfflineMode.value) {
-                        Get.to(() => MapView());
-                        mapController.switchToOnline();
-                      } else {
-                        Get.to(
-                          () => OfflineMapExample(),
-                          arguments: "Offline Map",
-                        );
-                        mapController.initOfflineMap();
-                        mapController.switchToOffline();
-                      }
+                      Get.to(() => OfflineMapScreen());
                     },
                   ),
                 ],

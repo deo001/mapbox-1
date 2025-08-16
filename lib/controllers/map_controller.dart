@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../controllers/polygon_controller.dart';
-import '../views/dowlnloaded_map.dart';
 
 class MapController extends GetxController {
   // -------------------- STATE --------------------
@@ -25,27 +24,9 @@ class MapController extends GetxController {
 
   // Offline Map Variables
   final String tileRegionId = "dar_es_salaam_region";
-  final CoordinateBounds darEsSalaamBounds = CoordinateBounds(
-    southwest: Point(coordinates: Position(39.15, -6.96)),
-    northeast: Point(coordinates: Position(39.35, -6.54)),
-    infiniteBounds: false,
-  );
+  
   final tileStore = Rxn<TileStore>();
   final isOfflineMapAvailable = false.obs;
-
-  Future<void> checkOfflineMap() async {
-    final ts = await TileStore.createDefault();
-    final regions = await ts.allTileRegions();
-
-    // Check if our Dar es Salaam region exists
-    final exists = regions.any((r) => r.id == tileRegionId);
-    if (exists) {
-      isOfflineMapAvailable.value = true;
-      tileStore.value = ts;
-    } else {
-      isOfflineMapAvailable.value = false;
-    }
-  }
 
   final isOfflineMode = false.obs; // whether user wants offline map
 
@@ -120,7 +101,6 @@ class MapController extends GetxController {
 
   TileStore? _tileStore;
   OfflineManager? _offlineManager;
-  final _tileRegionId = "my-tile-region";
   Future<void> initOfflineMap() async {
     _offlineManager = await OfflineManager.create();
     _tileStore = await TileStore.createDefault();
@@ -128,14 +108,6 @@ class MapController extends GetxController {
     // Reset disk quota to default value
     _tileStore?.setDiskQuota(null);
   }
-
-  // void _moveCameraToCurrentPosition() {
-  //   if (mapboxMap != null && currentPosition.value != null) {
-  //     mapboxMap!.setCamera(
-  //       CameraOptions(center: currentPosition.value, zoom: 16),
-  //     );
-  //   }
-  // }
 
   // -------------------- MAP INIT --------------------
   Future<void> onMapCreated(MapboxMap map) async {
@@ -268,52 +240,6 @@ class MapController extends GetxController {
     Get.snackbar('Cleared', 'All points and details have been cleared');
   }
 
-  // -------------------- OFFLINE MAP --------------------
-  Future<void> downloadDarEsSalaamOffline(dynamic Style) async {
-    final offlineManager = await OfflineManager.create();
-    final tileStore = await TileStore.createDefault();
-    final descriptor = TilesetDescriptorOptions(
-      styleURI: MapboxStyles.OUTDOORS,
-      minZoom: 10,
-      maxZoom: 16,
-    );
-
-    final estSizeMB = _estimateOfflineSizeMB(0, 16, darEsSalaamBounds);
-    Get.snackbar(
-      "Offline Map Size",
-      "Estimated size: ${estSizeMB.toStringAsFixed(2)} MB",
-    );
-
-    await tileStore
-        .loadTileRegion(
-          tileRegionId,
-          TileRegionLoadOptions(
-            geometry: darEsSalaamBounds.toPolygonGeoJson(),
-            acceptExpired: false,
-            descriptorsOptions: [descriptor],
-            networkRestriction: NetworkRestriction.NONE,
-            metadata: {"region": "Dar es Salaam"},
-          ),
-          (progress) {
-            final percent =
-                (progress.completedResourceCount /
-                    progress.requiredResourceCount) *
-                100;
-            debugPrint("Download progress: ${percent.toStringAsFixed(1)}%");
-          },
-        )
-        .then(
-          (_) => Get.snackbar(
-            "Offline Map",
-            "Dar es Salaam map downloaded successfully!",
-          ),
-        )
-        .catchError((err) => Get.snackbar("Error", "Failed to download: $err"));
-    isOfflineMapAvailable.value = true;
-
-    await listDownloadedMaps();
-  }
-
   final useOfflineMap = false.obs;
 
   get index => null;
@@ -326,52 +252,7 @@ class MapController extends GetxController {
     }
   }
 
-  Future<void> listDownloadedMaps() async {
-    try {
-      final tileStore = await TileStore.createDefault();
 
-      // Get all downloaded regions
-      final regions = await tileStore.allTileRegions();
-
-      if (regions.isEmpty) {
-        debugPrint("No offline regions found.");
-        Get.snackbar("Offline Map", "No downloaded regions found.");
-        return;
-      }
-
-      for (final region in regions) {
-        debugPrint("Region ID: ${region.id}");
-        // Size calculation (bytes → MB)
-        final sizeMB = (region.completedResourceSize / (1024 * 1024));
-        debugPrint("Size: ${sizeMB.toStringAsFixed(2)} MB");
-
-        Get.snackbar(
-          "Offline Region",
-          "${region.id}: ${sizeMB.toStringAsFixed(2)} MB",
-          duration: const Duration(seconds: 3),
-        );
-      }
-    } catch (e) {
-      debugPrint("Error listing offline maps: $e");
-      Get.snackbar("Error", "Failed to list offline maps");
-    }
-
-    Get.to(() => OfflineMapPage()); // Navigate to the map ready page
-  }
-
-  double _estimateOfflineSizeMB(
-    int minZoom,
-    int maxZoom,
-    CoordinateBounds bounds,
-  ) {
-    double factor = 0.002;
-    double tiles = 0;
-    for (int z = minZoom; z <= maxZoom; z++) {
-      tiles += (factor * (1 << z) * (1 << z));
-    }
-    double sizeKB = tiles * 20; // ~20KB per tile
-    return sizeKB / 1024;
-  }
 }
 
 // -------------------- EXTENSIONS --------------------

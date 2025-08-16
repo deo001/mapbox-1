@@ -8,7 +8,8 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   MapboxOptions.setAccessToken(
-      "pk.eyJ1IjoiYnJlbGxhaDEyIiwiYSI6ImNtZTlvcDVybjBseDcybHIwYTRsa2QxZmsifQ.CxllK7CvkV4UZzUnhodUzQ");
+      "pk.eyJ1IjoiYnJlbGxhaDEyIiwiYSI6ImNtZTlvcDVybjBseDcybHIwYTRsa2QxZmsifQ.CxllK7CvkV4UZzUnhodUzQ"
+      );
   InitialBindings().dependencies(); // Initialize controllers
 
   runApp(const MyApp());
