@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:maps_offline/controllers/map_controller.dart';
+import 'package:maps_offline/views/map_view.dart';
 import 'package:maps_offline/views/polygon_details.dart';
-
 import '../controllers/offlne_map_controller.dart';
 import '../controllers/polygon_controller.dart';
 
@@ -15,6 +15,7 @@ class OfflineMapScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<OfflineMapController>();
     final mapController = Get.find<MapController>();
+    final polygonController = Get.put(PolygonController()); // for polygons
 
     return Scaffold(
       appBar: AppBar(
@@ -30,7 +31,7 @@ class OfflineMapScreen extends StatelessWidget {
                 onPressed: controller.cleanup,
               );
             }
-            return Container();
+            return const SizedBox.shrink();
           }),
           IconButton(
             onPressed: () {
@@ -124,11 +125,13 @@ class OfflineMapScreen extends StatelessWidget {
                     return MapWidget(
                       key: ValueKey("map-${region.id}"),
                       styleUri: MapboxStyles.OUTDOORS,
-                      cameraOptions: CameraOptions(
-                        center: mapController.currentPosition.value,
-                        zoom: 16,
-                      ),
-                      onMapCreated: mapController.onMapCreated,
+                      cameraOptions:
+                          controller.cameraOptions.value ??
+                          CameraOptions(zoom: 14),
+                      onMapCreated: (map) {
+                        controller.onMapCreated(map);
+                        polygonController.onMapCreated(map);
+                      },
                     );
                   } else {
                     return Center(
@@ -200,7 +203,7 @@ class OfflineMapScreen extends StatelessWidget {
                       heroTag: 'toggle_map_mode',
                       icon: const Icon(Icons.wifi),
                       onPressed: () {
-                        // Get.to(() => MapView());
+                        Get.to(() => MapView());
                       },
                     ),
                   ],
@@ -260,10 +263,7 @@ class OfflineMapScreen extends StatelessWidget {
                               foregroundColor: Colors.white,
                             ),
                             onPressed: () {
-                              // Draw polygon on the map
                               mapController.completePolygon();
-
-                              // Open bottom sheet with polygon details
                               final polygonInfoController = Get.put(
                                 PolygonController(),
                               );

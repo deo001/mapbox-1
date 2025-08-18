@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
-
 import '../controllers/map_controller.dart';
 import '../controllers/polygon_controller.dart';
 import '../views/polygon_details.dart';
 import '../views/saved_polygon.dart';
 import 'offline_map_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class MapView extends StatelessWidget {
   final MapController mapController = Get.find();
@@ -22,9 +23,7 @@ class MapView extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.download),
-            tooltip: "Download Dar es Salaam Offline Map",
             onPressed: () {
-              // mapController.downloadDarEsSalaamOffline(MapboxStyles.OUTDOORS);
               Get.to(() => OfflineMapScreen());
             },
           ),
@@ -43,7 +42,11 @@ class MapView extends StatelessWidget {
         return Stack(
           children: [
             MapWidget(
-              onMapCreated: (map) => mapController.onMapCreated(map),
+              onMapCreated: (map) async {
+                 await mapController.onMapCreated(map);
+                  await polygonController.onMapCreated(map);
+                 await polygonController.drawPolygonsOnMap();
+        } ,
               styleUri: MapboxStyles.OUTDOORS,
               cameraOptions: CameraOptions(
                 center: mapController.currentPosition.value,

@@ -152,7 +152,7 @@ class OfflineMapController extends GetxController {
       coordinates: Position(lngSum / coords.length, latSum / coords.length),
     );
 
-    cameraOptions.value = CameraOptions(center: center, zoom: 9.0);
+    cameraOptions.value = CameraOptions(center: center, zoom: 13.0);
   }
 
   Future<void> downloadRegion() async {
@@ -240,4 +240,21 @@ class OfflineMapController extends GetxController {
   bool isRegionDownloaded(Region region) {
     return downloadedRegions.contains(region.id);
   }
+  //
+  // void _moveCameraToRegion(Region region) {
+  //   final coords = region.geometry.coordinates[0];
+  //   double lngSum = 0, latSum = 0;
+  //   for (final pos in coords) {
+  //     lngSum += pos.lng;
+  //     latSum += pos.lat;
+  //   }
+  //   final center = Point(
+  //     coordinates: Position(lngSum / coords.length, latSum / coords.length),
+  //   );
+  //
+  //   final options = CameraOptions(center: center, zoom: 9.0);
+  //   cameraOptions.value = options;
+  //
+  //   mapboxMap?.setCamera(options);
+  // }
 }

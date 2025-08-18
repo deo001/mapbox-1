@@ -23,26 +23,9 @@ class MapController extends GetxController {
   final PolygonController polygonController = Get.put(PolygonController());
 
   // Offline Map Variables
-  final String tileRegionId = "dar_es_salaam_region";
-  
-  final tileStore = Rxn<TileStore>();
-  final isOfflineMapAvailable = false.obs;
 
   final isOfflineMode = false.obs; // whether user wants offline map
 
-  Future<void> switchToOffline() async {
-    final ts = await TileStore.createDefault();
-    final regions = await ts.allTileRegions();
-
-    if (regions.isNotEmpty) {
-      isOfflineMapAvailable.value = true;
-      isOfflineMode.value = true;
-      update();
-    } else {
-      isOfflineMapAvailable.value = false;
-      Get.snackbar("Offline Map", "No downloaded map available.");
-    }
-  }
 
   void switchToOnline() {
     isOfflineMode.value = false;
@@ -99,15 +82,6 @@ class MapController extends GetxController {
     );
   }
 
-  TileStore? _tileStore;
-  OfflineManager? _offlineManager;
-  Future<void> initOfflineMap() async {
-    _offlineManager = await OfflineManager.create();
-    _tileStore = await TileStore.createDefault();
-
-    // Reset disk quota to default value
-    _tileStore?.setDiskQuota(null);
-  }
 
   // -------------------- MAP INIT --------------------
   Future<void> onMapCreated(MapboxMap map) async {
@@ -240,35 +214,5 @@ class MapController extends GetxController {
     Get.snackbar('Cleared', 'All points and details have been cleared');
   }
 
-  final useOfflineMap = false.obs;
-
-  get index => null;
-
-  void toggleOfflineView() {
-    if (isOfflineMapAvailable.value) {
-      useOfflineMap.toggle();
-    } else {
-      Get.snackbar("Offline Map", "No downloaded map available.");
-    }
-  }
-
-
 }
 
-// -------------------- EXTENSIONS --------------------
-extension BoundsToPolygon on CoordinateBounds {
-  Map<String, dynamic> toPolygonGeoJson() {
-    return {
-      "type": "Polygon",
-      "coordinates": [
-        [
-          [southwest.coordinates.lng, southwest.coordinates.lat],
-          [northeast.coordinates.lng, southwest.coordinates.lat],
-          [northeast.coordinates.lng, northeast.coordinates.lat],
-          [southwest.coordinates.lng, northeast.coordinates.lat],
-          [southwest.coordinates.lng, southwest.coordinates.lat],
-        ],
-      ],
-    };
-  }
-}

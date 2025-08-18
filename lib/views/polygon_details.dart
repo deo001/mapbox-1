@@ -63,15 +63,6 @@ class _PolygonDetailsSheetState extends State<PolygonDetailsSheet> {
                 ),
               const SizedBox(height: 12),
 
-              // Complete Polygon Button
-              // ElevatedButton.icon(
-              //   icon: const Icon(Icons.check),
-              //   label: const Text('Complete Polygon'),
-              //   onPressed: () async {
-              //     // await widget.polygonController.completePolygon();
-              //     Get.snackbar('Polygon', 'Polygon completed on map');
-              //   },
-              // ),
               const SizedBox(height: 12),
 
               // Save Polygon Button
